@@ -1,0 +1,51 @@
+stages:
+  - build
+  - test
+  - deploy
+
+build-job:
+  stage: build
+  image: node:18
+  script:
+    - npm install
+    - npm run build
+
+test-job1:
+  stage: test
+  image: node:18
+  script:
+    - npm install
+    - npm run test
+
+test-job2:
+  stage: test
+  script:
+    - echo "Test2"
+
+deploy-job:
+  stage: deploy
+  image: docker:latest
+  variables:
+    CONTAINER_NAME: diocampo-app
+    HOST_IP: 18.136.198.77
+    HOST_PORT: 3023
+  before_script:
+    - apk add openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+    # connect to the server
+    # login -> pull -> remove existing container -> run a new one
+    - |
+      ssh -o StrictHostKeyChecking=no ubuntu@$HOST_IP "\
+      docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY; \
+      docker pull $CI_REGISTRY_IMAGE:latest || true; \
+      docker rm -f $CONTAINER_NAME; \
+      docker run -it -d -p $HOST_PORT:3000 --name $CONTAINER_NAME $CI_REGISTRY_IMAGE:latest;"
+    - 'echo "Website link: http://$HOST_IP:$HOST_PORT"'
