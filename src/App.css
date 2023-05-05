@@ -37,3 +37,6 @@
   font-size: 3rem;
   color: white;
 }
+.hidden {
+  display: none;
+}
