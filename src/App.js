@@ -22,8 +22,8 @@ function App() {
 
   return (
     <div className='container'>
+      <p className='hidden'>Learn React</p>
       <label className='label'>
-        <p className='hidden'>learn react</p>
         What's your name?
         <br></br>
         <input type="text" value={name} onChange={handleNameChange} className='inputName'/>
